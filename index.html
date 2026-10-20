@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Igun Gunawan - Portofolio 3D</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap");
+
+      /* --- CSS VARIABLES UNTUK TEMA --- */
+      :root {
+        --bg-color: #0a0a1a;
+        --text-main: #f0f0f0;
+        --text-sub: #a0a0a0;
+        --card-bg: rgba(17, 24, 39, 0.7); /* gray-900 */
+        --accent: #00eeff;
+        --accent-dark: #0077ff;
+        --input-bg: #1f2937; /* gray-800 */
+        --input-border: #374151; /* gray-700 */
+        --nav-bg: rgba(10, 10, 26, 0.85);
+        --fog-color: 0x0a0a1a;
+      }
+
+      body.light-mode {
+        --bg-color: #f3f4f6; /* gray-100 */
+        --text-main: #111827; /* gray-900 */
+        --text-sub: #4b5563; /* gray-600 */
+        --card-bg: rgba(255, 255, 255, 0.8);
+        --accent: #0077ff;
+        --accent-dark: #0055cc;
+        --input-bg: #e5e7eb; /* gray-200 */
+        --input-border: #d1d5db; /* gray-300 */
+        --nav-bg: rgba(243, 244, 246, 0.85);
+        --fog-color: 0xf3f4f6;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+      }
+
+      /* Transisi Global (hanya untuk warna agar animasi 3D tidak lag) */
+      body,
+      nav,
+      .card-3d,
+      .theme-toggle,
+      .nav-links a,
+      input,
+      textarea,
+      .gallery-overlay,
+      h1,
+      h2,
+      h3,
+      h4,
+      p,
+      span {
+        transition:
+          background-color 0.4s ease,
+          color 0.4s ease,
+          border-color 0.4s ease,
+          box-shadow 0.4s ease;
+      }
+
+      body {
+        overflow-x: hidden;
+        background: var(--bg-color);
+        color: var(--text-main);
+        scroll-behavior: smooth;
+      }
+
+      .section {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        position: relative;
+        padding: 120px 5% 50px;
+      }
+
+      #hero {
+        min-height: 110vh;
+        padding-top: 50px;
+      }
+
+      .canvas-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: -1;
+        pointer-events: none;
+      }
+
+      .content-wrapper {
+        position: relative;
+        z-index: 10;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      /* --- NAVBAR --- */
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 15px 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--nav-bg);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        border-bottom: 1px solid var(--input-border);
+      }
+      .nav-logo {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-main);
+        text-decoration: none;
+        letter-spacing: 1px;
+      }
+      .nav-logo span {
+        color: var(--accent);
+      }
+      .nav-links {
+        display: flex;
+        gap: 30px;
+        align-items: center;
+      }
+      .nav-links a {
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        position: relative;
+        padding-bottom: 5px;
+      }
+      .nav-links a::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0%;
+        height: 2px;
+        background: var(--accent);
+        transition: width 0.3s ease;
+      }
+      .nav-links a:hover::after,
+      .nav-links a.active::after {
+        width: 100%;
+      }
+      .nav-links a:hover {
+        color: var(--accent);
+      }
+
+      /* Tombol Tema di Navbar */
+      .theme-toggle {
+        background: var(--input-bg);
+        border: 2px solid var(--accent);
+        color: var(--accent);
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        margin-left: 20px;
+      }
+      .theme-toggle:hover {
+        background: var(--accent);
+        color: var(--bg-color);
+        transform: scale(1.1);
+      }
+
+      /* --- HERO & FLOATING --- */
+      .floating {
+        animation: floating 6s ease-in-out infinite;
+      }
+      @keyframes floating {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+
+      .typewriter {
+        overflow: hidden;
+        border-right: 0.15em solid var(--accent);
+        white-space: nowrap;
+        margin: 0 auto;
+        letter-spacing: 0.15em;
+        animation:
+          typing 3.5s steps(40, end),
+          blink-caret 0.75s step-end infinite;
+      }
+      @keyframes typing {
+        from {
+          width: 0;
+        }
+        to {
+          width: 100%;
+        }
+      }
+      @keyframes blink-caret {
+        from,
+        to {
+          border-color: transparent;
+        }
+        50% {
+          border-color: var(--accent);
+        }
+      }
+
+      .glow {
+        text-shadow: 0 0 15px var(--accent);
+      }
+      .neon-border {
+        border: 2px solid var(--accent);
+        box-shadow:
+          0 0 15px rgba(0, 238, 255, 0.2),
+          inset 0 0 10px rgba(0, 238, 255, 0.1);
+      }
+
+      .progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+        z-index: 1001;
+        transition: width 0.1s;
+      }
+
+      /* --- KARTU 3D UMUM --- */
+      .card-3d {
+        transform-style: preserve-3d;
+        transition:
+          transform 0.5s,
+          box-shadow 0.5s;
+      }
+      .card-3d:hover {
+        transform: rotateY(5deg) rotateX(5deg) translateY(-10px);
+        box-shadow: 0 20px 40px var(--accent);
+      }
+
+      /* --- FOTO PROFIL 3D --- */
+      .profile-card {
+        transform-style: preserve-3d;
+        transition: transform 0.1s ease;
+      }
+      .profile-image-container {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        position: relative;
+      }
+      .profile-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+        transform: scale(1.1);
+        transition: transform 0.5s ease;
+      }
+      .glare {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 50% 50%,
+          rgba(255, 255, 255, 0.4) 0%,
+          rgba(255, 255, 255, 0) 60%
+        );
+        pointer-events: none;
+        mix-blend-mode: overlay;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      /* --- GALERI KEGIATAN --- */
+      .gallery-item {
+        position: relative;
+        overflow: hidden;
+        border-radius: 15px;
+        cursor: pointer;
+      }
+      .gallery-item img {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+      }
+      .gallery-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 0.9),
+          rgba(0, 0, 0, 0.1) 70%
+        );
+        opacity: 0;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 20px;
+        border: 2px solid transparent;
+      }
+      .gallery-item:hover img {
+        transform: scale(1.1);
+      }
+      .gallery-item:hover .gallery-overlay {
+        opacity: 1;
+        border: 2px solid var(--accent);
+        border-radius: 15px;
+        box-shadow: inset 0 0 20px rgba(0, 238, 255, 0.3);
+      }
+
+      /* Penyesuaian Warna Tailwind ke CSS Variables */
+      .text-gray-300 {
+        color: var(--text-sub) !important;
+      }
+      .text-gray-400 {
+        color: var(--text-sub) !important;
+      }
+      .bg-gray-900\/50 {
+        background-color: var(--card-bg) !important;
+      }
+      .bg-gray-800,
+      .bg-gray-800\/50 {
+        background-color: var(--input-bg) !important;
+      }
+      .border-gray-700 {
+        border-color: var(--input-border) !important;
+      }
+
+      /* Responsif Navbar */
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        } /* Sembunyikan menu di HP */
+        .theme-toggle {
+          margin-left: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- NAVBAR -->
+    <nav>
+      <a href="#hero" class="nav-logo">IGUN<span>.</span></a>
+      <div class="nav-links">
+        <a href="#hero">Beranda</a>
+        <a href="#about">Tentang</a>
+        <a href="#gallery">Galeri</a>
+        <a href="#projects">Proyek</a>
+        <a href="#contact">Kontak</a>
+      </div>
+      <!-- TOMBOL TEMA -->
+      <div class="theme-toggle" id="themeToggle" title="Ubah Tema">
+        <i class="fas fa-moon text-xl" id="themeIcon"></i>
+      </div>
+    </nav>
+
+    <!-- 3D Canvas Container -->
+    <div class="canvas-container" id="canvasContainer"></div>
+
+    <!-- Hero Section -->
+    <section class="section" id="hero">
+      <div class="content-wrapper">
+        <div class="flex flex-col lg:flex-row items-center justify-between">
+          <div class="lg:w-1/2 mb-12 lg:mb-0 floating">
+            <h1
+              class="text-5xl md:text-7xl font-bold mb-4 glow"
+              style="color: var(--text-main)"
+            >
+              Igun <span style="color: var(--accent)">Gunawan</span>
+            </h1>
+            <div
+              class="typewriter text-2xl md:text-3xl mb-6"
+              style="color: var(--accent)"
+            >
+              Mahasiswa Teknik Informatika
+            </div>
+            <p class="text-xl mb-8 text-gray-300">
+              Seorang mahasiswa berusia 19 tahun yang bersemangat dalam dunia
+              teknologi, saat ini menjabat sebagai Ketua Kelas di
+              <span style="color: var(--accent); font-weight: bold"
+                >Universitas Dharma Indonesia</span
+              >. Saya memiliki minat dalam pengembangan web, desain interaktif,
+              dan teknologi 3D.
+            </p>
+            <div class="flex space-x-4">
+              <a
+                href="#about"
+                class="neon-border px-6 py-3 rounded-lg font-semibold text-lg hover:bg-cyan-900/30 transition-all duration-300"
+                style="color: var(--accent)"
+                >Jelajahi Portofolio</a
+              >
+              <a
+                href="#contact"
+                class="bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 rounded-lg font-semibold text-lg text-white hover:shadow-lg hover:shadow-cyan-500/30 transition-all duration-300"
+                >Hubungi Saya</a
+              >
+            </div>
+          </div>
+
+          <div class="lg:w-2/5 flex justify-center">
+            <div
+              class="relative w-64 h-64 md:w-80 md:h-80 card-3d profile-card"
+              id="profileCard"
+            >
+              <div
+                class="absolute inset-0 bg-gradient-to-r from-cyan-500/30 to-blue-600/30 rounded-full blur-2xl animate-pulse"
+              ></div>
+
+              <div
+                class="relative w-full h-full rounded-full border-4 shadow-[0_0_30px_rgba(0,238,255,0.4)] z-10"
+                style="border-color: var(--accent)"
+              >
+                <div class="profile-image-container">
+                  <img
+                    src="foto-profil.jpg"
+                    alt="Foto Profil Igun"
+                    class="profile-image"
+                    id="profileImg"
+                    onerror="
+                      this.src =
+                        'https://via.placeholder.com/400x400/0a0a1a/00eeff?text=Foto+Profil'
+                    "
+                  />
+                </div>
+                <div class="glare" id="glare"></div>
+              </div>
+
+              <div
+                class="absolute -bottom-6 -right-6 w-32 h-32 rounded-full bg-blue-500/20 blur-xl -z-10"
+              ></div>
+              <div
+                class="absolute -top-6 -left-6 w-24 h-24 rounded-full bg-cyan-500/20 blur-xl -z-10"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="section" id="about">
+      <div class="content-wrapper">
+        <h2
+          class="text-4xl md:text-5xl font-bold mb-12 text-center glow"
+          style="color: var(--text-main)"
+        >
+          Tentang <span style="color: var(--accent)">Saya</span>
+        </h2>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div class="space-y-6">
+            <div
+              class="card-3d bg-gray-900/50 backdrop-blur-sm p-8 rounded-2xl neon-border"
+            >
+              <h3 class="text-2xl font-bold mb-4" style="color: var(--accent)">
+                <i class="fas fa-user-graduate mr-3"></i>Profil Akademik
+              </h3>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i
+                    class="fas fa-university mt-1 mr-3"
+                    style="color: var(--accent)"
+                  ></i>
+                  <div>
+                    <h4 class="font-semibold" style="color: var(--text-main)">
+                      Universitas Dharma Indonesia
+                    </h4>
+                    <p>Program Studi Teknik Informatika</p>
+                    <p class="text-sm text-gray-400">2022 - Sekarang</p>
+                  </div>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-crown text-yellow-400 mt-1 mr-3"></i>
+                  <div>
+                    <h4 class="font-semibold" style="color: var(--text-main)">
+                      Ketua Kelas
+                    </h4>
+                    <p>Memimpin dan mengkoordinasi kegiatan kelas</p>
+                    <p class="text-sm text-gray-400">2023 - Sekarang</p>
+                  </div>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-birthday-cake text-pink-400 mt-1 mr-3"></i>
+                  <div>
+                    <h4 class="font-semibold" style="color: var(--text-main)">
+                      Usia
+                    </h4>
+                    <p>19 Tahun</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div
+              class="card-3d bg-gray-900/50 backdrop-blur-sm p-8 rounded-2xl neon-border"
+            >
+              <h3 class="text-2xl font-bold mb-4" style="color: var(--accent)">
+                <i class="fas fa-code mr-3"></i>Keterampilan Teknis
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <div
+                    class="flex justify-between mb-1"
+                    style="color: var(--text-main)"
+                  >
+                    <span class="font-medium">Web Development</span>
+                    <span style="color: var(--accent)">85%</span>
+                  </div>
+                  <div class="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      class="h-2 rounded-full"
+                      style="
+                        width: 85%;
+                        background: linear-gradient(
+                          90deg,
+                          var(--accent),
+                          var(--accent-dark)
+                        );
+                      "
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div
+                    class="flex justify-between mb-1"
+                    style="color: var(--text-main)"
+                  >
+                    <span class="font-medium">3D Animation & Design</span>
+                    <span style="color: var(--accent)">75%</span>
+                  </div>
+                  <div class="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      class="h-2 rounded-full"
+                      style="
+                        width: 75%;
+                        background: linear-gradient(
+                          90deg,
+                          var(--accent),
+                          var(--accent-dark)
+                        );
+                      "
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div
+                    class="flex justify-between mb-1"
+                    style="color: var(--text-main)"
+                  >
+                    <span class="font-medium">UI/UX Design</span>
+                    <span style="color: var(--accent)">80%</span>
+                  </div>
+                  <div class="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      class="h-2 rounded-full"
+                      style="
+                        width: 80%;
+                        background: linear-gradient(
+                          90deg,
+                          var(--accent),
+                          var(--accent-dark)
+                        );
+                      "
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div
+              class="bg-gray-900/50 backdrop-blur-sm p-8 rounded-2xl neon-border"
+            >
+              <h3 class="text-2xl font-bold mb-6" style="color: var(--accent)">
+                <i class="fas fa-star mr-3"></i>Visi & Misi
+              </h3>
+              <p class="text-gray-300 mb-6">
+                Sebagai seorang mahasiswa Teknik Informatika, saya bercita-cita
+                untuk menjadi seorang developer yang mampu menciptakan solusi
+                teknologi inovatif yang berdampak positif bagi masyarakat.
+              </p>
+              <p class="text-gray-300 mb-6">
+                Saya percaya bahwa teknologi harus dapat diakses dan bermanfaat
+                bagi semua orang. Oleh karena itu, saya selalu berusaha untuk
+                mengembangkan keterampilan dan pengetahuan saya dalam bidang
+                pengembangan perangkat lunak, desain interaktif, dan animasi 3D.
+              </p>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-gray-800/50 p-4 rounded-lg">
+                  <i class="fas fa-lightbulb text-yellow-400 text-2xl mb-2"></i>
+                  <h4 class="font-bold" style="color: var(--text-main)">
+                    Inovatif
+                  </h4>
+                  <p class="text-sm text-gray-300">
+                    Selalu mencari solusi kreatif
+                  </p>
+                </div>
+                <div class="bg-gray-800/50 p-4 rounded-lg">
+                  <i class="fas fa-users text-green-400 text-2xl mb-2"></i>
+                  <h4 class="font-bold" style="color: var(--text-main)">
+                    Kolaboratif
+                  </h4>
+                  <p class="text-sm text-gray-300">Bekerja efektif dalam tim</p>
+                </div>
+                <div class="bg-gray-800/50 p-4 rounded-lg">
+                  <i class="fas fa-rocket text-purple-400 text-2xl mb-2"></i>
+                  <h4 class="font-bold" style="color: var(--text-main)">
+                    Visioner
+                  </h4>
+                  <p class="text-sm text-gray-300">
+                    Berpikir ke depan dengan teknologi
+                  </p>
+                </div>
+                <div class="bg-gray-800/50 p-4 rounded-lg">
+                  <i class="fas fa-book text-cyan-400 text-2xl mb-2"></i>
+                  <h4 class="font-bold" style="color: var(--text-main)">
+                    Pembelajar
+                  </h4>
+                  <p class="text-sm text-gray-300">Terus mengembangkan diri</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GALERI KEGIATAN SECTION -->
+    <section class="section" id="gallery">
+      <div class="content-wrapper">
+        <h2
+          class="text-4xl md:text-5xl font-bold mb-12 text-center glow"
+          style="color: var(--text-main)"
+        >
+          Galeri <span style="color: var(--accent)">Kegiatan</span>
+        </h2>
+
+        <p class="text-center text-gray-400 mb-10 max-w-2xl mx-auto">
+          Dokumentasi momen berharga selama menempuh pendidikan di Teknik
+          Informatika Universitas Dharma Indonesia.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Foto Kegiatan 1 -->
+          <div class="gallery-item card-3d">
+            <img
+              src="kegiatan1.jpg"
+              alt="Seminar Teknologi"
+              onerror="
+                this.src =
+                  'https://via.placeholder.com/400x300/15151e/00eeff?text=Foto+Kegiatan+1'
+              "
+            />
+            <div class="gallery-overlay">
+              <span class="text-sm font-bold mb-1" style="color: var(--accent)"
+                ><i class="fas fa-camera mr-2"></i>Seminar</span
+              >
+              <h3 class="text-xl font-bold text-white">Seminar Nasional IT</h3>
+            </div>
+          </div>
+
+          <!-- Foto Kegiatan 2 -->
+          <div class="gallery-item card-3d">
+            <img
+              src="kegiatan2.jpg"
+              alt="Praktikum"
+              onerror="
+                this.src =
+                  'https://via.placeholder.com/400x300/15151e/00eeff?text=Foto+Kegiatan+2'
+              "
+            />
+            <div class="gallery-overlay">
+              <span class="text-sm font-bold mb-1" style="color: var(--accent)"
+                ><i class="fas fa-flask mr-2"></i>Praktikum</span
+              >
+              <h3 class="text-xl font-bold text-white">
+                Kerja Praktik Jaringan
+              </h3>
+            </div>
+          </div>
+
+          <!-- Foto Kegiatan 3 -->
+          <div class="gallery-item card-3d">
+            <img
+              src="kegiatan3.jpg"
+              alt="Hackathon"
+              onerror="
+                this.src =
+                  'https://via.placeholder.com/400x300/15151e/00eeff?text=Foto+Kegiatan+3'
+              "
+            />
+            <div class="gallery-overlay">
+              <span class="text-sm font-bold mb-1" style="color: var(--accent)"
+                ><i class="fas fa-code mr-2"></i>Kompetisi</span
+              >
+              <h3 class="text-xl font-bold text-white">Hackathon Mahasiswa</h3>
+            </div>
+          </div>
+
+          <!-- Foto Kegiatan 4 -->
+          <div class="gallery-item card-3d">
+            <img
+              src="kegiatan4.jpg"
+              alt="Organisasi"
+              onerror="
+                this.src =
+                  'https://via.placeholder.com/400x300/15151e/00eeff?text=Foto+Kegiatan+4'
+              "
+            />
+            <div class="gallery-overlay">
+              <span class="text-sm font-bold mb-1" style="color: var(--accent)"
+                ><i class="fas fa-users mr-2"></i>Organisasi</span
+              >
+              <h3 class="text-xl font-bold text-white">Rapat Kerja BEM</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="section" id="projects">
+      <div class="content-wrapper">
+        <h2
+          class="text-4xl md:text-5xl font-bold mb-12 text-center glow"
+          style="color: var(--text-main)"
+        >
+          Proyek <span style="color: var(--accent)">Terbaru</span>
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- Project 1 -->
+          <div
+            class="card-3d bg-gray-900/50 backdrop-blur-sm rounded-2xl overflow-hidden neon-border"
+          >
+            <div
+              class="h-48 bg-gradient-to-r from-cyan-900/50 to-blue-900/50 flex items-center justify-center"
+            >
+              <i class="fas fa-cube text-6xl" style="color: var(--accent)"></i>
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2" style="color: var(--accent)">
+                Sistem Visualisasi 3D Kampus
+              </h3>
+              <p class="text-gray-300 mb-4">
+                Platform interaktif untuk memvisualisasikan kampus Universitas
+                Dharma Indonesia dalam bentuk 3D dengan navigasi real-time.
+              </p>
+              <div class="flex justify-between items-center">
+                <span
+                  class="px-3 py-1 bg-cyan-900/30 rounded-full text-sm"
+                  style="color: var(--accent)"
+                  >Three.js</span
+                >
+                <a href="#" style="color: var(--accent)"
+                  ><i class="fas fa-external-link-alt"></i
+                ></a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Project 2 -->
+          <div
+            class="card-3d bg-gray-900/50 backdrop-blur-sm rounded-2xl overflow-hidden neon-border"
+          >
+            <div
+              class="h-48 bg-gradient-to-r from-purple-900/50 to-pink-900/50 flex items-center justify-center"
+            >
+              <i class="fas fa-laptop-code text-6xl text-purple-300"></i>
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2" style="color: var(--accent)">
+                Aplikasi Manajemen Kelas
+              </h3>
+              <p class="text-gray-300 mb-4">
+                Aplikasi web untuk membantu ketua kelas dalam mengelola
+                kehadiran, jadwal, dan komunikasi antar mahasiswa.
+              </p>
+              <div class="flex justify-between items-center">
+                <span
+                  class="px-3 py-1 bg-cyan-900/30 rounded-full text-sm"
+                  style="color: var(--accent)"
+                  >React.js</span
+                >
+                <a href="#" style="color: var(--accent)"
+                  ><i class="fas fa-external-link-alt"></i
+                ></a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Project 3 -->
+          <div
+            class="card-3d bg-gray-900/50 backdrop-blur-sm rounded-2xl overflow-hidden neon-border"
+          >
+            <div
+              class="h-48 bg-gradient-to-r from-green-900/50 to-teal-900/50 flex items-center justify-center"
+            >
+              <i class="fas fa-gamepad text-6xl text-green-300"></i>
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2" style="color: var(--accent)">
+                Game Edukasi Teknologi
+              </h3>
+              <p class="text-gray-300 mb-4">
+                Game edukasi berbasis web untuk mengenalkan konsep pemrograman
+                dasar dengan animasi 3D yang menarik.
+              </p>
+              <div class="flex justify-between items-center">
+                <span
+                  class="px-3 py-1 bg-cyan-900/30 rounded-full text-sm"
+                  style="color: var(--accent)"
+                  >JavaScript</span
+                >
+                <a href="#" style="color: var(--accent)"
+                  ><i class="fas fa-external-link-alt"></i
+                ></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="section" id="contact">
+      <div class="content-wrapper">
+        <h2
+          class="text-4xl md:text-5xl font-bold mb-12 text-center glow"
+          style="color: var(--text-main)"
+        >
+          Hubungi <span style="color: var(--accent)">Saya</span>
+        </h2>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div>
+            <div
+              class="bg-gray-900/50 backdrop-blur-sm p-8 rounded-2xl neon-border mb-8"
+            >
+              <h3 class="text-2xl font-bold mb-6" style="color: var(--accent)">
+                Informasi Kontak
+              </h3>
+              <div class="space-y-6 text-gray-300">
+                <div class="flex items-center">
+                  <div
+                    class="w-12 h-12 rounded-full flex items-center justify-center mr-4"
+                    style="background-color: var(--input-bg)"
+                  >
+                    <i class="fas fa-envelope" style="color: var(--accent)"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-bold" style="color: var(--text-main)">
+                      Email
+                    </h4>
+                    <p>igun.gunawan@example.edu</p>
+                  </div>
+                </div>
+                <div class="flex items-center">
+                  <div
+                    class="w-12 h-12 rounded-full flex items-center justify-center mr-4"
+                    style="background-color: var(--input-bg)"
+                  >
+                    <i class="fas fa-phone" style="color: var(--accent)"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-bold" style="color: var(--text-main)">
+                      Telepon
+                    </h4>
+                    <p>+62 812 3456 7890</p>
+                  </div>
+                </div>
+                <div class="flex items-center">
+                  <div
+                    class="w-12 h-12 rounded-full flex items-center justify-center mr-4"
+                    style="background-color: var(--input-bg)"
+                  >
+                    <i
+                      class="fas fa-map-marker-alt"
+                      style="color: var(--accent)"
+                    ></i>
+                  </div>
+                  <div>
+                    <h4 class="font-bold" style="color: var(--text-main)">
+                      Lokasi
+                    </h4>
+                    <p>Universitas Dharma Indonesia</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-8">
+                <h4 class="font-bold text-xl mb-4" style="color: var(--accent)">
+                  Ikuti Saya
+                </h4>
+                <div class="flex space-x-4">
+                  <a
+                    href="#"
+                    class="w-12 h-12 rounded-full flex items-center justify-center hover:opacity-80"
+                    style="background-color: var(--input-bg)"
+                  >
+                    <i
+                      class="fab fa-linkedin-in"
+                      style="color: var(--accent)"
+                    ></i>
+                  </a>
+                  <a
+                    href="#"
+                    class="w-12 h-12 rounded-full flex items-center justify-center hover:opacity-80"
+                    style="background-color: var(--input-bg)"
+                  >
+                    <i class="fab fa-github" style="color: var(--accent)"></i>
+                  </a>
+                  <a
+                    href="#"
+                    class="w-12 h-12 rounded-full flex items-center justify-center hover:opacity-80"
+                    style="background-color: var(--input-bg)"
+                  >
+                    <i
+                      class="fab fa-instagram"
+                      style="color: var(--accent)"
+                    ></i>
+                  </a>
+                  <a
+                    href="#"
+                    class="w-12 h-12 rounded-full flex items-center justify-center hover:opacity-80"
+                    style="background-color: var(--input-bg)"
+                  >
+                    <i class="fab fa-twitter" style="color: var(--accent)"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div
+              class="bg-gray-900/50 backdrop-blur-sm p-8 rounded-2xl neon-border"
+            >
+              <h3 class="text-2xl font-bold mb-6" style="color: var(--accent)">
+                Kirim Pesan
+              </h3>
+              <form
+                class="space-y-6"
+                onsubmit="
+                  event.preventDefault();
+                  alert('Pesan berhasil dikirim (Simulasi)');
+                "
+              >
+                <div>
+                  <label class="block mb-2 text-gray-300">Nama Lengkap</label>
+                  <input
+                    type="text"
+                    class="w-full border rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500"
+                    style="
+                      background-color: var(--input-bg);
+                      border-color: var(--input-border);
+                      color: var(--text-main);
+                    "
+                    placeholder="Masukkan nama Anda"
+                    required
+                  />
+                </div>
+                <div>
+                  <label class="block mb-2 text-gray-300">Email</label>
+                  <input
+                    type="email"
+                    class="w-full border rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500"
+                    style="
+                      background-color: var(--input-bg);
+                      border-color: var(--input-border);
+                      color: var(--text-main);
+                    "
+                    placeholder="Masukkan email Anda"
+                    required
+                  />
+                </div>
+                <div>
+                  <label class="block mb-2 text-gray-300">Pesan</label>
+                  <textarea
+                    rows="5"
+                    class="w-full border rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500"
+                    style="
+                      background-color: var(--input-bg);
+                      border-color: var(--input-border);
+                      color: var(--text-main);
+                    "
+                    placeholder="Tulis pesan Anda..."
+                    required
+                  ></textarea>
+                </div>
+                <button
+                  type="submit"
+                  class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold py-3 rounded-lg hover:shadow-lg hover:shadow-cyan-500/30 transition-all duration-300"
+                >
+                  Kirim Pesan <i class="fas fa-paper-plane ml-2"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer
+      class="py-8 text-center border-t"
+      style="border-color: var(--input-border)"
+    >
+      <div class="content-wrapper">
+        <p class="text-gray-400 mb-2">
+          &copy; 2023 Igun Gunawan. Semua Hak Dilindungi.
+        </p>
+        <p class="text-gray-500 text-sm">
+          Dibuat dengan
+          <i class="fas fa-heart text-red-500 mx-1"></i> menggunakan Three.js,
+          Tailwind CSS, dan teknologi web modern.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      // --- 1. LOGIKA TEMA (DARK/LIGHT MODE) ---
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+      const body = document.body;
+
+      // Cek tema tersimpan di localStorage
+      const currentTheme = localStorage.getItem("theme");
+      if (currentTheme === "light") {
+        body.classList.add("light-mode");
+        themeIcon.classList.replace("fa-moon", "fa-sun");
+      }
+
+      // Fungsi Ganti Tema
+      themeToggle.addEventListener("click", () => {
+        body.classList.toggle("light-mode");
+
+        if (body.classList.contains("light-mode")) {
+          themeIcon.classList.replace("fa-moon", "fa-sun");
+          localStorage.setItem("theme", "light");
+          if (scene && scene.fog) scene.fog.color.setHex(0xf3f4f6); // Ubah fog 3D ke terang
+        } else {
+          themeIcon.classList.replace("fa-sun", "fa-moon");
+          localStorage.setItem("theme", "dark");
+          if (scene && scene.fog) scene.fog.color.setHex(0x0a0a1a); // Ubah fog 3D ke gelap
+        }
+      });
+
+      // --- 2. LOGIKA THREE.JS 3D BACKGROUND ---
+      let scene, camera, renderer, controls;
+
+      function init3DScene() {
+        scene = new THREE.Scene();
+        // Cek tema awal untuk warna fog
+        const fogColor = body.classList.contains("light-mode")
+          ? 0xf3f4f6
+          : 0x0a0a1a;
+        scene.fog = new THREE.Fog(fogColor, 10, 50);
+
+        camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000,
+        );
+        camera.position.set(0, 0, 15);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        const container = document.getElementById("canvasContainer");
+        container.appendChild(renderer.domElement);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = false;
+        controls.enablePan = false;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0x00eeff, 0.8);
+        directionalLight.position.set(5, 5, 5);
+        scene.add(directionalLight);
+
+        // Floating Objects
+        const geometry = new THREE.IcosahedronGeometry(1, 0);
+        const material = new THREE.MeshPhongMaterial({
+          color: 0x00eeff,
+          shininess: 100,
+          transparent: true,
+          opacity: 0.7,
+        });
+
+        for (let i = 0; i < 20; i++) {
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.position.x = (Math.random() - 0.5) * 30;
+          mesh.position.y = (Math.random() - 0.5) * 30;
+          mesh.position.z = (Math.random() - 0.5) * 20;
+          const scale = Math.random() * 0.5 + 0.3;
+          mesh.scale.set(scale, scale, scale);
+          mesh.userData = {
+            speed: Math.random() * 0.02 + 0.01,
+            rotationSpeed: Math.random() * 0.02 + 0.01,
+            amplitude: Math.random() * 2 + 1,
+            initialY: mesh.position.y,
+          };
+          scene.add(mesh);
+        }
+
+        window.addEventListener("resize", onWindowResize);
+        animate();
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        scene.children.forEach((child) => {
+          if (child.isMesh && child.userData.speed) {
+            child.position.y =
+              child.userData.initialY +
+              Math.sin(Date.now() * child.userData.speed) *
+                child.userData.amplitude;
+            child.rotation.x += child.userData.rotationSpeed;
+            child.rotation.y += child.userData.rotationSpeed;
+          }
+        });
+        renderer.render(scene, camera);
+      }
+
+      // --- 3. LOGIKA FOTO PROFIL 3D (TILT) ---
+      const profileCard = document.getElementById("profileCard");
+      const glare = document.getElementById("glare");
+      const profileImg = document.getElementById("profileImg");
+
+      profileCard.addEventListener("mousemove", (e) => {
+        const rect = profileCard.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = (y - centerY) / 10;
+        const rotateY = (centerX - x) / 10;
+
+        profileCard.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        profileImg.style.transform = `scale(1.1) translateX(${rotateY * 0.5}px) translateY(${-rotateX * 0.5}px)`;
+        glare.style.opacity = "1";
+        glare.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%)`;
+      });
+
+      profileCard.addEventListener("mouseleave", () => {
+        profileCard.style.transform = `rotateX(0deg) rotateY(0deg)`;
+        profileImg.style.transform = `scale(1.1) translateX(0) translateY(0)`;
+        glare.style.opacity = "0";
+        profileCard.style.transition = "transform 0.5s ease";
+      });
+
+      profileCard.addEventListener("mouseenter", () => {
+        profileCard.style.transition = "transform 0.1s ease";
+      });
+
+      // --- 4. PROGRESS BAR SCROLL ---
+      window.addEventListener("scroll", () => {
+        const winScroll =
+          document.body.scrollTop || document.documentElement.scrollTop;
+        const height =
+          document.documentElement.scrollHeight -
+          document.documentElement.clientHeight;
+        const scrolled = (winScroll / height) * 100;
+        document.getElementById("progressBar").style.width = scrolled + "%";
+      });
+
+      // Inisialisasi 3D saat halaman dimuat
+      document.addEventListener("DOMContentLoaded", () => {
+        init3DScene();
+      });
+
+      // --- 5. HIGHLIGHT NAVBAR SAAT SCROLL ---
+      const sections = document.querySelectorAll("section");
+      const navLinks = document.querySelectorAll(".nav-links a");
+
+      window.addEventListener("scroll", () => {
+        let current = "";
+        sections.forEach((section) => {
+          const sectionTop = section.offsetTop;
+          if (scrollY >= sectionTop - 150) {
+            current = section.getAttribute("id");
+          }
+        });
+
+        navLinks.forEach((link) => {
+          link.classList.remove("active");
+          if (link.getAttribute("href") === `#${current}`) {
+            link.classList.add("active");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
